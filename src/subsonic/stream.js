@@ -3,6 +3,7 @@ import path from 'node:path';
 import { downloadYoutubeAudio } from '../downloads/downloader.js';
 import { organizeDownloadedTrack } from '../downloads/processor.js';
 import { getOrganizedTrack, getYoutubeResult, rememberOrganizedTrack } from '../catalog/memory.js';
+import { getOrganizedTrack as getPersistedOrganizedTrack, getVirtualTrack, saveOrganizedTrack } from '../db/index.js';
 import { proxyToNavidrome, triggerScanFromRequest } from '../navidrome/client.js';
 
 const contentTypes = {
@@ -23,16 +24,17 @@ export async function stream(request, reply) {
   if (!videoId) return proxyToNavidrome(request, reply);
 
   try {
-    let organized = getOrganizedTrack(videoId);
+    let organized = getOrganizedTrack(videoId) || getPersistedOrganizedTrack('youtube', videoId);
     if (!organized || !fs.existsSync(organized.path)) {
       const downloadedPath = await downloadYoutubeAudio(videoId);
-      const youtubeInfo = getYoutubeResult(videoId) || {
+      const youtubeInfo = getYoutubeResult(videoId) || getVirtualTrack('youtube', videoId) || {
         title: videoId,
         channel: 'YouTube',
         thumbnail: ''
       };
       organized = await organizeDownloadedTrack(downloadedPath, youtubeInfo);
       rememberOrganizedTrack(videoId, organized);
+      saveOrganizedTrack('youtube', videoId, organized);
       triggerScanFromRequest(request).catch(error => {
         request.log.warn({ error }, 'failed to trigger Navidrome scan');
       });
