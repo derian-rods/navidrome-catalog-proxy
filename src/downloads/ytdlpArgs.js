@@ -26,5 +26,8 @@ export function ytdlpAuthArgs() {
   if (config.tools.ytdlpJsRuntime) {
     args.push('--js-runtimes', config.tools.ytdlpJsRuntime);
   }
+  if (config.tools.ytdlpRemoteComponents) {
+    args.push('--remote-components', config.tools.ytdlpRemoteComponents);
+  }
   return args;
 }
