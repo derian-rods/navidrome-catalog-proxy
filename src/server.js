@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import { fileURLToPath } from 'node:url';
 import { config } from './config.js';
 import { searchYoutube } from './catalog/youtube.js';
+import { registerCleanupRoutes } from './cleanup/routes.js';
 import { getCatalogStats } from './db/index.js';
 import { getToolReport } from './tools.js';
 import { registerSubsonicRoutes } from './subsonic/routes.js';
@@ -15,6 +16,9 @@ export function buildServer() {
   });
 
   app.register(cors, { origin: true });
+  app.addContentTypeParser('application/x-www-form-urlencoded', { parseAs: 'string' }, (_request, body, done) => {
+    done(null, body ? Object.fromEntries(new URLSearchParams(body)) : {});
+  });
 
   app.get('/health', async () => ({
     status: 'ok',
@@ -42,6 +46,7 @@ export function buildServer() {
   });
 
   app.register(registerSubsonicRoutes);
+  app.register(registerCleanupRoutes);
 
   return app;
 }
