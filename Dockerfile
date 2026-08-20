@@ -4,11 +4,12 @@ ENV NODE_ENV=production
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
-    ca-certificates \
-    ffmpeg \
-    python3 \
-    python3-pip \
-    python3-venv \
+  ca-certificates \
+  ffmpeg \
+  python3 \
+  python3-pip \
+  python3-venv \
+  build-essential \
   && python3 -m venv /opt/yt-dlp \
   && /opt/yt-dlp/bin/pip install --no-cache-dir yt-dlp \
   && ln -s /opt/yt-dlp/bin/yt-dlp /usr/local/bin/yt-dlp \
