@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { config } from './config.js';
 import { searchYoutube } from './catalog/youtube.js';
 import { registerCleanupRoutes } from './cleanup/routes.js';
+import { startCleanupScheduler } from './cleanup/scheduler.js';
 import { getCatalogStats } from './db/index.js';
 import { getToolReport } from './tools.js';
 import { registerSubsonicRoutes } from './subsonic/routes.js';
@@ -47,6 +48,10 @@ export function buildServer() {
 
   app.register(registerSubsonicRoutes);
   app.register(registerCleanupRoutes);
+
+  app.addHook('onReady', async () => {
+    startCleanupScheduler(app);
+  });
 
   return app;
 }

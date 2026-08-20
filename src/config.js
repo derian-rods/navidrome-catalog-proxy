@@ -42,11 +42,14 @@ export const config = {
     preferOriginalOpus: boolFromEnv('PREFER_ORIGINAL_OPUS', true)
   },
   youtube: {
-    maxResults: intFromEnv('YOUTUBE_MAX_RESULTS', 10)
+    maxResults: intFromEnv('YOUTUBE_MAX_RESULTS', 10),
+    maxRemoteSongs: intFromEnv('YOUTUBE_MAX_REMOTE_SONGS', 6),
+    maxSongDurationSeconds: intFromEnv('YOUTUBE_MAX_SONG_DURATION_SECONDS', 600)
   },
   cleanup: {
     enabled: boolFromEnv('CLEANUP_ENABLED', false),
     dryRun: boolFromEnv('CLEANUP_DRY_RUN', true),
+    intervalHours: intFromEnv('CLEANUP_INTERVAL_HOURS', 168),
     quarantineDir: process.env.CLEANUP_QUARANTINE_DIR || path.join(process.env.MUSIC_DIR || '/opt/navidrome/music', '.trash-candidates'),
     maxPlayCount: intFromEnv('CLEANUP_MAX_PLAY_COUNT', 1),
     notPlayedDays: intFromEnv('CLEANUP_NOT_PLAYED_DAYS', 30),
