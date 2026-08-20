@@ -1,0 +1,14 @@
+node_modules/
+.env
+data/*.sqlite
+data/*.sqlite-*
+cache/*
+downloads/*
+logs/*
+tools/*
+!data/.gitkeep
+!cache/.gitkeep
+!downloads/.gitkeep
+!logs/.gitkeep
+!tools/.gitkeep
+npm-debug.log*
