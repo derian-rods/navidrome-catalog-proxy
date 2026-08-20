@@ -19,6 +19,10 @@ function writableCookiesFile() {
 
 export function ytdlpAuthArgs() {
   const args = [];
+  const cacheDir = path.join(config.paths.cacheDir, 'yt-dlp');
+  fs.mkdirSync(cacheDir, { recursive: true });
+  args.push('--cache-dir', cacheDir);
+
   const cookiesFile = writableCookiesFile();
   if (cookiesFile) {
     args.push('--cookies', cookiesFile);

@@ -85,10 +85,12 @@ The compose example passes:
 YTDLP_COOKIES_FILE=/app/secrets/youtube-cookies.txt
 YTDLP_JS_RUNTIME=node:/usr/local/bin/node
 YTDLP_REMOTE_COMPONENTS=ejs:github
+XDG_CACHE_HOME=/app/cache
 ```
 
 The service copies the mounted read-only cookies file into the writable cache directory before calling `yt-dlp`, because some `yt-dlp` versions try to update the cookies file on exit.
 `YTDLP_REMOTE_COMPONENTS=ejs:github` allows `yt-dlp` to download the JavaScript challenge solver required by some YouTube responses.
+The service also passes `--cache-dir` under `CACHE_DIR` so challenge solver files are cached in a writable location.
 
 ## Cleanup Safety
 
