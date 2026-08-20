@@ -4,6 +4,7 @@ ENV NODE_ENV=production
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
+    build-essential \
     ca-certificates \
     ffmpeg \
     python3 \

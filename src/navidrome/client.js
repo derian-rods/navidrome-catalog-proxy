@@ -44,6 +44,28 @@ export async function proxyToNavidrome(request, reply) {
   return reply.send(response.body);
 }
 
+function navidromeUrlFromRequest(request, endpoint) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(request.query || {})) {
+    if (value !== undefined) params.set(key, String(value));
+  }
+  params.set('f', 'json');
+  return new URL(`/rest/${endpoint}?${params}`, config.navidrome.url);
+}
+
+export async function callNavidromeJson(request, endpoint) {
+  const target = navidromeUrlFromRequest(request, endpoint);
+  const response = await fetch(target, {
+    method: 'GET',
+    headers: { accept: 'application/json' }
+  });
+  const text = await response.text();
+  if (!response.ok) {
+    throw new Error(`Navidrome ${endpoint} failed with HTTP ${response.status}: ${text.slice(0, 200)}`);
+  }
+  return JSON.parse(text);
+}
+
 export async function triggerScanFromRequest(request) {
   const authKeys = ['u', 'p', 't', 's', 'c', 'v', 'f'];
   const params = new URLSearchParams();
