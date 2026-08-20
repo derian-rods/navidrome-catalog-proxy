@@ -3,6 +3,7 @@ import { config } from '../config.js';
 import { rememberYoutubeResults } from './memory.js';
 import { rankYoutubeResult } from './ranker.js';
 import { saveVirtualTracks } from '../db/index.js';
+import { ytdlpAuthArgs } from '../downloads/ytdlpArgs.js';
 
 function runYtDlp(args) {
   return new Promise((resolve, reject) => {
@@ -23,6 +24,7 @@ function runYtDlp(args) {
 export async function searchYoutube(query) {
   const search = `ytsearch${config.youtube.maxResults}:${query}`;
   const output = await runYtDlp([
+    ...ytdlpAuthArgs(),
     '--dump-json',
     '--flat-playlist',
     '--no-warnings',

@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { config } from '../config.js';
+import { ytdlpAuthArgs } from './ytdlpArgs.js';
 
 const extensionByFormat = {
   opus: 'opus',
@@ -41,6 +42,7 @@ export async function downloadYoutubeAudio(videoId) {
   const outputTemplate = path.join(config.paths.downloadDir, `${videoId}.%(ext)s`);
 
   await runYtDlp([
+    ...ytdlpAuthArgs(),
     '--no-playlist',
     '--extract-audio',
     '--audio-format', config.audio.format,
