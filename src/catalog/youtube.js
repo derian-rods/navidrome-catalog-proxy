@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import { config } from '../config.js';
 import { rememberYoutubeResults } from './memory.js';
 import { rankYoutubeResult } from './ranker.js';
+import { saveVirtualTracks } from '../db/index.js';
 
 function runYtDlp(args) {
   return new Promise((resolve, reject) => {
@@ -53,5 +54,6 @@ export async function searchYoutube(query) {
     .sort((a, b) => b.score - a.score);
 
   rememberYoutubeResults(results);
+  saveVirtualTracks(results);
   return results;
 }
