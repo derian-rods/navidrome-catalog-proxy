@@ -46,3 +46,7 @@ curl http://127.0.0.1:4540/api/tools
 - On-demand download and stream for `yt:*` IDs.
 - Metadata and cover resolution using iTunes, MusicBrainz, Cover Art Archive, and optional AcoustID.
 - Weekly cleanup with quarantine, never direct deletion.
+
+## Docker Deployment
+
+See `deploy/README.md` and `compose.proxy.example.yml` for the VPS Docker deployment template.
