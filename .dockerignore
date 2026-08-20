@@ -6,4 +6,5 @@ cache/
 downloads/
 logs/
 tools/
+secrets/
 npm-debug.log*

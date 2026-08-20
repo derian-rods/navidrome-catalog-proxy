@@ -33,6 +33,8 @@ export const config = {
   },
   tools: {
     ytdlp: process.env.YTDLP_PATH || 'yt-dlp',
+    ytdlpCookiesFile: process.env.YTDLP_COOKIES_FILE || '',
+    ytdlpJsRuntime: process.env.YTDLP_JS_RUNTIME || '',
     ffmpeg: process.env.FFMPEG_PATH || 'ffmpeg',
     ffprobe: process.env.FFPROBE_PATH || 'ffprobe'
   },

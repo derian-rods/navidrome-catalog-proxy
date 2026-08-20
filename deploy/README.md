@@ -53,6 +53,39 @@ The proxy needs write access to the music directory:
 
 Navidrome itself can keep its music mount read-only.
 
+## Permissions
+
+The proxy container runs as UID/GID `1001:1001` in the example compose file so it can write to `/opt/navidrome/music` when that directory is owned by `1001:1001`.
+
+Prepare persistent folders on the host:
+
+```bash
+mkdir -p data cache downloads secrets
+chown -R 1001:1001 data cache downloads
+```
+
+## YouTube Cookies
+
+If YouTube requires bot verification, export YouTube cookies in Netscape format and mount them at:
+
+```text
+./secrets/youtube-cookies.txt
+```
+
+Recommended permissions:
+
+```bash
+chown 1001:1001 secrets/youtube-cookies.txt
+chmod 600 secrets/youtube-cookies.txt
+```
+
+The compose example passes:
+
+```env
+YTDLP_COOKIES_FILE=/app/secrets/youtube-cookies.txt
+YTDLP_JS_RUNTIME=node:/usr/local/bin/node
+```
+
 ## Cleanup Safety
 
 Cleanup is disabled by default:
