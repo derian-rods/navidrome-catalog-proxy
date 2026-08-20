@@ -3,7 +3,7 @@ import path from 'node:path';
 import { downloadYoutubeAudio } from '../downloads/downloader.js';
 import { organizeDownloadedTrack } from '../downloads/processor.js';
 import { getOrganizedTrack, getYoutubeResult, rememberOrganizedTrack } from '../catalog/memory.js';
-import { proxyToNavidrome } from '../navidrome/client.js';
+import { proxyToNavidrome, triggerScanFromRequest } from '../navidrome/client.js';
 
 const contentTypes = {
   '.opus': 'audio/ogg',
@@ -33,6 +33,9 @@ export async function stream(request, reply) {
       };
       organized = await organizeDownloadedTrack(downloadedPath, youtubeInfo);
       rememberOrganizedTrack(videoId, organized);
+      triggerScanFromRequest(request).catch(error => {
+        request.log.warn({ error }, 'failed to trigger Navidrome scan');
+      });
     }
     const audioPath = organized.path;
     const ext = path.extname(audioPath).toLowerCase();
