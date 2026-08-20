@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { fileURLToPath } from 'node:url';
 import { config } from './config.js';
+import { searchYoutube } from './catalog/youtube.js';
 import { getToolReport } from './tools.js';
 import { registerSubsonicRoutes } from './subsonic/routes.js';
 
@@ -30,6 +31,12 @@ export function buildServer() {
   }));
 
   app.get('/api/tools', async () => getToolReport(config));
+
+  app.get('/api/search', async request => {
+    const query = String(request.query.q || request.query.query || '').trim();
+    if (!query) return { results: [] };
+    return { results: await searchYoutube(query) };
+  });
 
   app.register(registerSubsonicRoutes);
 
