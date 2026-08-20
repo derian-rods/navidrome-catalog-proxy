@@ -31,6 +31,7 @@ services:
 
       CLEANUP_ENABLED: "false"
       CLEANUP_DRY_RUN: "true"
+      CLEANUP_INTERVAL_HOURS: "168"
       CLEANUP_QUARANTINE_DIR: "/music/.trash-candidates"
       CLEANUP_MAX_PLAY_COUNT: "1"
       CLEANUP_NOT_PLAYED_DAYS: "30"

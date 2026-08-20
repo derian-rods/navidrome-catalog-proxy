@@ -49,6 +49,7 @@ export const config = {
   cleanup: {
     enabled: boolFromEnv('CLEANUP_ENABLED', false),
     dryRun: boolFromEnv('CLEANUP_DRY_RUN', true),
+    intervalHours: intFromEnv('CLEANUP_INTERVAL_HOURS', 168),
     quarantineDir: process.env.CLEANUP_QUARANTINE_DIR || path.join(process.env.MUSIC_DIR || '/opt/navidrome/music', '.trash-candidates'),
     maxPlayCount: intFromEnv('CLEANUP_MAX_PLAY_COUNT', 1),
     notPlayedDays: intFromEnv('CLEANUP_NOT_PLAYED_DAYS', 30),
