@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import { config } from '../config.js';
+import { rememberYoutubeResults } from './memory.js';
 import { rankYoutubeResult } from './ranker.js';
 
 function runYtDlp(args) {
@@ -27,7 +28,7 @@ export async function searchYoutube(query) {
     search
   ]);
 
-  return output
+  const results = output
     .split(/\r?\n/)
     .map(line => line.trim())
     .filter(Boolean)
@@ -50,4 +51,7 @@ export async function searchYoutube(query) {
       };
     })
     .sort((a, b) => b.score - a.score);
+
+  rememberYoutubeResults(results);
+  return results;
 }
