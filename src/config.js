@@ -35,6 +35,7 @@ export const config = {
     ytdlp: process.env.YTDLP_PATH || 'yt-dlp',
     ytdlpCookiesFile: process.env.YTDLP_COOKIES_FILE || '',
     ytdlpJsRuntime: process.env.YTDLP_JS_RUNTIME || '',
+    ytdlpRemoteComponents: process.env.YTDLP_REMOTE_COMPONENTS || '',
     ffmpeg: process.env.FFMPEG_PATH || 'ffmpeg',
     ffprobe: process.env.FFPROBE_PATH || 'ffprobe'
   },
