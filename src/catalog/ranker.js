@@ -37,7 +37,8 @@ function durationScore(duration) {
   if (!duration) return 0;
   if (duration >= 120 && duration <= 450) return 18;
   if (duration >= 90 && duration <= 600) return 8;
-  if (duration > 900) return -30;
+  if (duration > 900) return -60;
+  if (duration > 600) return -40;
   if (duration < 60) return -20;
   return 0;
 }

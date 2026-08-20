@@ -42,7 +42,9 @@ export const config = {
     preferOriginalOpus: boolFromEnv('PREFER_ORIGINAL_OPUS', true)
   },
   youtube: {
-    maxResults: intFromEnv('YOUTUBE_MAX_RESULTS', 10)
+    maxResults: intFromEnv('YOUTUBE_MAX_RESULTS', 10),
+    maxRemoteSongs: intFromEnv('YOUTUBE_MAX_REMOTE_SONGS', 6),
+    maxSongDurationSeconds: intFromEnv('YOUTUBE_MAX_SONG_DURATION_SECONDS', 600)
   },
   cleanup: {
     enabled: boolFromEnv('CLEANUP_ENABLED', false),

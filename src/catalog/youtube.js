@@ -29,6 +29,7 @@ export async function searchYoutube(query) {
     search
   ]);
 
+  const allowLongForm = /ambient|meditation|meditaci[oó]n|sleep|relax|relajante|binaural|432hz|963hz/i.test(query);
   const results = output
     .split(/\r?\n/)
     .map(line => line.trim())
@@ -51,9 +52,11 @@ export async function searchYoutube(query) {
         badges: ranked.badges
       };
     })
+    .filter(item => allowLongForm || !item.duration || item.duration <= config.youtube.maxSongDurationSeconds)
     .sort((a, b) => b.score - a.score);
 
-  rememberYoutubeResults(results);
-  saveVirtualTracks(results);
-  return results;
+  const limited = results.slice(0, config.youtube.maxRemoteSongs);
+  rememberYoutubeResults(limited);
+  saveVirtualTracks(limited);
+  return limited;
 }
