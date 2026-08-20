@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { downloadYoutubeAudio } from '../downloads/downloader.js';
+import { organizeDownloadedTrack } from '../downloads/processor.js';
+import { getOrganizedTrack, getYoutubeResult, rememberOrganizedTrack } from '../catalog/memory.js';
 import { proxyToNavidrome } from '../navidrome/client.js';
 
 const contentTypes = {
@@ -21,7 +23,18 @@ export async function stream(request, reply) {
   if (!videoId) return proxyToNavidrome(request, reply);
 
   try {
-    const audioPath = await downloadYoutubeAudio(videoId);
+    let organized = getOrganizedTrack(videoId);
+    if (!organized || !fs.existsSync(organized.path)) {
+      const downloadedPath = await downloadYoutubeAudio(videoId);
+      const youtubeInfo = getYoutubeResult(videoId) || {
+        title: videoId,
+        channel: 'YouTube',
+        thumbnail: ''
+      };
+      organized = await organizeDownloadedTrack(downloadedPath, youtubeInfo);
+      rememberOrganizedTrack(videoId, organized);
+    }
+    const audioPath = organized.path;
     const ext = path.extname(audioPath).toLowerCase();
     const stat = fs.statSync(audioPath);
 
