@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { getOrCreateYoutubeTrack } from '../downloads/youtubeTrack.js';
 import { proxyToNavidrome } from '../navidrome/client.js';
+import { youtubeSourceId } from './virtual.js';
 
 const contentTypes = {
   '.opus': 'audio/ogg',
@@ -11,10 +12,6 @@ const contentTypes = {
   '.aac': 'audio/aac',
   '.flac': 'audio/flac'
 };
-
-function youtubeId(id) {
-  return String(id || '').startsWith('yt:') ? String(id).slice(3) : '';
-}
 
 function parseRange(rangeHeader, size) {
   const match = String(rangeHeader || '').match(/^bytes=(\d*)-(\d*)$/);
@@ -67,7 +64,7 @@ function sendAudioFile(request, reply, audioPath) {
 }
 
 export async function stream(request, reply) {
-  const videoId = youtubeId(request.query.id);
+  const videoId = youtubeSourceId(request.query.id);
   if (!videoId) return proxyToNavidrome(request, reply);
 
   try {

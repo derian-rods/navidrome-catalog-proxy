@@ -4,6 +4,7 @@ import { rememberYoutubeResults } from './memory.js';
 import { rankYoutubeResult } from './ranker.js';
 import { saveVirtualTracks } from '../db/index.js';
 import { ytdlpAuthArgs } from '../downloads/ytdlpArgs.js';
+import { youtubeVirtualId } from '../subsonic/virtual.js';
 
 function runYtDlp(args) {
   return new Promise((resolve, reject) => {
@@ -40,7 +41,7 @@ export async function searchYoutube(query) {
     .map(item => {
       const ranked = rankYoutubeResult(item, query);
       return {
-        id: `yt:${item.id}`,
+        id: youtubeVirtualId(item.id),
         source: 'youtube',
         sourceId: item.id,
         title: item.title || '',

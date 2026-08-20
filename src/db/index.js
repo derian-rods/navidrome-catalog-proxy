@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import fs from 'node:fs';
 import path from 'node:path';
 import { config } from '../config.js';
+import { youtubeVirtualId } from '../subsonic/virtual.js';
 
 let db;
 
@@ -118,7 +119,7 @@ export function getVirtualTrack(source, sourceId) {
   `).get(source, sourceId);
   if (!row) return null;
   return {
-    id: `${row.source === 'youtube' ? 'yt' : row.source}:${row.source_id}`,
+    id: row.source === 'youtube' ? youtubeVirtualId(row.source_id) : `${row.source}:${row.source_id}`,
     source: row.source,
     sourceId: row.source_id,
     title: row.title,
