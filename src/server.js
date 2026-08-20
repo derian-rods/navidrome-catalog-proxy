@@ -2,8 +2,9 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { fileURLToPath } from 'node:url';
 import { config } from './config.js';
+import { searchYoutube } from './catalog/youtube.js';
 import { getToolReport } from './tools.js';
-import { okResponse } from './subsonic/responses.js';
+import { registerSubsonicRoutes } from './subsonic/routes.js';
 
 export function buildServer() {
   const app = Fastify({
@@ -31,19 +32,13 @@ export function buildServer() {
 
   app.get('/api/tools', async () => getToolReport(config));
 
-  app.get('/rest/ping.view', async () => okResponse());
-  app.get('/rest/ping', async () => okResponse());
+  app.get('/api/search', async request => {
+    const query = String(request.query.q || request.query.query || '').trim();
+    if (!query) return { results: [] };
+    return { results: await searchYoutube(query) };
+  });
 
-  app.get('/rest/getLicense.view', async () => okResponse({
-    license: {
-      valid: true
-    }
-  }));
-  app.get('/rest/getLicense', async () => okResponse({
-    license: {
-      valid: true
-    }
-  }));
+  app.register(registerSubsonicRoutes);
 
   return app;
 }
