@@ -86,7 +86,7 @@ YTDLP_COOKIES_FILE=/app/secrets/youtube-cookies.txt
 YTDLP_JS_RUNTIME=node:/usr/local/bin/node
 ```
 
-The service passes `--no-cookies-update` to `yt-dlp`, so the cookies file can stay mounted read-only.
+The service copies the mounted read-only cookies file into the writable cache directory before calling `yt-dlp`, because some `yt-dlp` versions try to update the cookies file on exit.
 
 ## Cleanup Safety
 
