@@ -11,6 +11,8 @@ services:
       LOG_LEVEL: "info"
 
       NAVIDROME_URL: "http://navidrome:4533"
+      NAVIDROME_USER: ""
+      NAVIDROME_PASSWORD: ""
 
       MUSIC_DIR: "/music"
       DOWNLOAD_DIR: "/app/downloads"

@@ -77,8 +77,12 @@ export async function triggerScanFromRequest(request) {
   }
 
   if (!params.has('u') || (!params.has('p') && (!params.has('t') || !params.has('s')))) {
-    request.log.warn('skipping Navidrome scan: missing Subsonic auth parameters');
-    return false;
+    if (!config.navidrome.user || !config.navidrome.password) {
+      request.log.warn('skipping Navidrome scan: missing Subsonic auth parameters and configured Navidrome credentials');
+      return false;
+    }
+    params.set('u', config.navidrome.user);
+    params.set('p', config.navidrome.password);
   }
 
   if (!params.has('c')) params.set('c', 'navidrome-catalog-proxy');
