@@ -8,6 +8,7 @@ import { startCleanupScheduler } from './cleanup/scheduler.js';
 import { getCatalogStats } from './db/index.js';
 import { getToolReport } from './tools.js';
 import { registerSubsonicRoutes } from './subsonic/routes.js';
+import { registerWebRoutes } from './web/routes.js';
 
 export function buildServer() {
   const app = Fastify({
@@ -46,6 +47,7 @@ export function buildServer() {
     return { results: await searchYoutube(query) };
   });
 
+  app.register(registerWebRoutes);
   app.register(registerSubsonicRoutes);
   app.register(registerCleanupRoutes);
 

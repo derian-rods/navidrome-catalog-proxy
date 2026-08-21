@@ -43,6 +43,43 @@ curl http://navidrome-catalog-proxy:4540/api/tools
 curl http://navidrome-catalog-proxy:4540/api/catalog/stats
 ```
 
+## Standalone Catalog Web
+
+The proxy serves a separate catalog downloader UI at:
+
+```text
+/catalog
+```
+
+It uses these API routes:
+
+```text
+/api/catalog/search
+/api/catalog/download
+```
+
+Route those paths to this proxy in Caddy, while keeping normal Navidrome web traffic on `/`:
+
+```caddyfile
+handle /catalog* {
+  reverse_proxy navidrome-catalog-proxy:4540
+}
+
+handle /api/catalog* {
+  reverse_proxy navidrome-catalog-proxy:4540
+}
+
+handle /rest* {
+  reverse_proxy navidrome-catalog-proxy:4540
+}
+
+handle {
+  reverse_proxy navidrome:4533
+}
+```
+
+Set `NAVIDROME_USER` and `NAVIDROME_PASSWORD` in the proxy environment if you want downloads from the standalone web UI to trigger Navidrome rescans automatically.
+
 ## Volumes
 
 The proxy needs write access to the music directory:

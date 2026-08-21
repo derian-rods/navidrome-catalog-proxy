@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Navidrome Catalog</title>
+    <link rel="stylesheet" href="/catalog/styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Navidrome downloader</p>
+          <h1>Search YouTube, save to your library.</h1>
+          <p class="lede">Find an album, song, remix, or live session. Download it into Navidrome and trigger a rescan automatically.</p>
+        </div>
+        <a class="navidrome-link" href="/" target="_blank" rel="noreferrer">Open Navidrome</a>
+      </section>
+
+      <form class="search" id="searchForm">
+        <input id="query" name="q" type="search" autocomplete="off" placeholder="Search songs, albums, artists..." autofocus>
+        <button type="submit">Search</button>
+      </form>
+
+      <section class="status" id="status">Ready.</section>
+      <section class="grid" id="results"></section>
+    </main>
+
+    <template id="cardTemplate">
+      <article class="card">
+        <img class="thumb" alt="">
+        <div class="card-body">
+          <div class="meta-row">
+            <span class="badge">YouTube</span>
+            <span class="duration"></span>
+          </div>
+          <h2></h2>
+          <p class="artist"></p>
+          <div class="actions">
+            <button class="download" type="button">Download to Navidrome</button>
+            <a class="watch" target="_blank" rel="noreferrer">Watch</a>
+          </div>
+          <p class="message"></p>
+        </div>
+      </article>
+    </template>
+
+    <script src="/catalog/app.js" type="module"></script>
+  </body>
+</html>
