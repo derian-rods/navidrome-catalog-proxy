@@ -54,8 +54,11 @@ The proxy serves a separate catalog downloader and content management UI at:
 It uses these API routes:
 
 ```text
+/api/auth/login
+/api/catalog/lookup
 /api/catalog/search
 /api/catalog/download
+/api/catalog/download-batch
 /api/catalog/downloaded
 /api/catalog/quarantine
 /api/catalog/rescan
@@ -75,8 +78,8 @@ catalog.derian-rods.tech {
 }
 ```
 
-Set `NAVIDROME_USER` and `NAVIDROME_PASSWORD` in the proxy environment so downloads from the standalone web UI can trigger Navidrome rescans automatically.
-Admin actions use `CATALOG_ADMIN_PASSWORD` when set, otherwise they fall back to `NAVIDROME_PASSWORD`.
+Users log in to the catalog with their Navidrome username and password. The proxy validates those credentials against Navidrome before protected actions.
+Set `NAVIDROME_USER` and `NAVIDROME_PASSWORD` in the proxy environment so downloads and content-management actions can trigger Navidrome rescans automatically.
 
 ## Volumes
 

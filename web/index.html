@@ -7,6 +7,18 @@
     <link rel="stylesheet" href="/catalog/styles.css">
   </head>
   <body>
+    <section class="login-gate" id="loginGate">
+      <form class="login-card" id="loginForm">
+        <p class="eyebrow">Navidrome Catalog</p>
+        <h1>Login with Navidrome.</h1>
+        <p class="lede">Any valid Navidrome user can search, download, manage quarantine, and trigger rescans.</p>
+        <input id="loginUser" type="text" autocomplete="username" placeholder="Navidrome user" required>
+        <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Navidrome password" required>
+        <button type="submit">Enter catalog</button>
+        <p class="message" id="loginMessage"></p>
+      </form>
+    </section>
+
     <main class="shell">
       <section class="hero">
         <div>
@@ -15,9 +27,8 @@
           <p class="lede">Find an album, song, remix, or live session. Download it into Navidrome and trigger a rescan automatically.</p>
         </div>
         <div class="top-actions">
-          <input id="adminUser" class="admin-login" type="text" autocomplete="username" placeholder="Navidrome user">
-          <input id="adminPassword" class="admin-login" type="password" autocomplete="current-password" placeholder="Navidrome password">
-          <button id="loginCheck" type="button">Login</button>
+          <span class="session-user" id="sessionUser"></span>
+          <button id="logout" type="button">Logout</button>
           <a class="navidrome-link" href="https://music.derian-rods.tech" target="_blank" rel="noreferrer">Open Navidrome</a>
         </div>
       </section>
@@ -31,14 +42,21 @@
 
       <section id="searchPanel" class="panel active">
         <form class="search" id="searchForm">
-          <input id="query" name="q" type="search" autocomplete="off" placeholder="Search songs, albums, artists..." autofocus>
+          <input id="query" name="q" type="search" autocomplete="off" placeholder="Search artist, album, song, or paste YouTube URL..." autofocus>
+          <select id="searchMode" aria-label="Search mode">
+            <option value="auto">Auto</option>
+            <option value="songs">Songs</option>
+            <option value="collections">Albums/Playlists</option>
+          </select>
+          <select id="resultLimit" aria-label="Result limit">
+            <option value="15">15</option>
+            <option value="30" selected>30</option>
+            <option value="50">50</option>
+          </select>
           <button type="submit">Search</button>
         </form>
-        <form class="search url-search" id="urlForm">
-          <input id="youtubeUrl" name="url" type="url" autocomplete="off" placeholder="Paste a YouTube album, playlist, or video URL...">
-          <button type="submit">Load URL</button>
-        </form>
         <section class="album-preview" id="albumPreview"></section>
+        <section class="collections" id="collections"></section>
         <section class="grid" id="results"></section>
       </section>
 
@@ -88,6 +106,22 @@
           </div>
           <p class="message"></p>
         </div>
+      </article>
+    </template>
+
+    <template id="collectionTemplate">
+      <article class="collection-card">
+        <div>
+          <span class="badge">Album / Playlist</span>
+          <h2></h2>
+          <p class="artist"></p>
+        </div>
+        <div class="actions">
+          <button class="preview" type="button">Preview</button>
+          <button class="download-all" type="button">Download all</button>
+          <a class="watch" target="_blank" rel="noreferrer">Open</a>
+        </div>
+        <p class="message"></p>
       </article>
     </template>
 
