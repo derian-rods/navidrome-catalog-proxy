@@ -8,6 +8,8 @@ import './styles.css';
 type Auth = { user: string; password: string };
 type YoutubeItem = { id: string; sourceId: string; title: string; artist: string; album: string; duration: number; url: string; thumbnail: string; channel?: string; entryCount?: number };
 type Preview = { title: string; uploader: string; count: number; entries: YoutubeItem[] };
+type DownloadJobItem = { sourceId: string; status: string; message: string; path: string; error: string; startedAt: string; finishedAt: string };
+type DownloadJob = { id: string; status: string; total: number; completed: number; failed: number; scanStarted: boolean; items: DownloadJobItem[]; createdAt: string; updatedAt: string; finishedAt: string };
 type DownloadedTrack = { sourceId: string; title: string; artist: string; album: string; path: string; url: string; exists: boolean; quarantined: boolean; cleanupStatus: string };
 type Candidate = { sourceId: string; reason: string; originalPath: string; quarantinePath: string; exists: boolean };
 
@@ -67,6 +69,10 @@ function sourceId(item: Pick<YoutubeItem, 'sourceId' | 'id'>) {
 function formatDuration(seconds: number) {
   if (!seconds) return '';
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+}
+
+function jobDone(job?: DownloadJob) {
+  return Boolean(job && ['completed', 'completed_with_errors', 'failed'].includes(job.status));
 }
 
 function Button({ children, variant = 'primary', ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'ghost' | 'danger' }) {
@@ -172,9 +178,13 @@ function Status({ children, tone = '' }: { children: React.ReactNode; tone?: str
 
 function SongCard({ item }: { item: YoutubeItem }) {
   const { auth } = useAuth();
+  const [jobId, setJobId] = useState('');
   const mutation = useMutation({
-    mutationFn: () => api<{ path: string }>('/api/catalog/download', { method: 'POST', body: JSON.stringify({ sourceId: sourceId(item) }) }, auth)
+    mutationFn: () => api<{ job: DownloadJob }>('/api/catalog/download-jobs', { method: 'POST', body: JSON.stringify({ sourceIds: [sourceId(item)] }) }, auth),
+    onSuccess: data => setJobId(data.job.id)
   });
+  const job = useDownloadJob(jobId);
+  const itemStatus = job.data?.items[0];
   return <Card>
     {item.thumbnail && <img className="thumb" src={item.thumbnail} alt="" />}
     <div className="card-body">
@@ -182,13 +192,33 @@ function SongCard({ item }: { item: YoutubeItem }) {
       <h3>{item.title}</h3>
       <p>{item.artist || item.channel}</p>
       <div className="actions">
-        <Button disabled={mutation.isPending || mutation.isSuccess} onClick={() => mutation.mutate()}><Download size={16} /> {mutation.isSuccess ? 'Downloaded' : mutation.isPending ? 'Downloading...' : 'Download'}</Button>
+        <Button disabled={mutation.isPending || Boolean(job.data && !jobDone(job.data)) || itemStatus?.status === 'done'} onClick={() => mutation.mutate()}><Download size={16} /> {downloadButtonText(mutation.isPending, itemStatus)}</Button>
         <a className="link" href={item.url} target="_blank" rel="noreferrer"><ExternalLink size={16} /> Open</a>
       </div>
       {mutation.error && <p className="message error">{mutation.error.message}</p>}
-      {mutation.data && <p className="message success">Saved: {mutation.data.path}</p>}
+      {job.data && <JobProgress job={job.data} compact />}
     </div>
   </Card>;
+}
+
+function downloadButtonText(starting: boolean, item?: DownloadJobItem) {
+  if (starting) return 'Starting...';
+  if (!item) return 'Download';
+  if (item.status === 'queued') return 'Queued';
+  if (item.status === 'downloading') return 'Downloading...';
+  if (item.status === 'done') return 'Downloaded';
+  if (item.status === 'failed') return 'Retry download';
+  return 'Download';
+}
+
+function useDownloadJob(jobId: string) {
+  const { auth } = useAuth();
+  return useQuery({
+    queryKey: ['download-job', jobId],
+    queryFn: () => api<{ job: DownloadJob }>(`/api/catalog/download-jobs/${jobId}`, {}, auth).then(result => result.job),
+    enabled: Boolean(jobId),
+    refetchInterval: query => jobDone(query.state.data) ? false : 1000
+  });
 }
 
 function CollectionCard({ item }: { item: YoutubeItem }) {
@@ -215,19 +245,41 @@ function CollectionCard({ item }: { item: YoutubeItem }) {
 
 function PreviewBlock({ preview }: { preview: Preview }) {
   const { auth } = useAuth();
+  const [jobId, setJobId] = useState('');
   const mutation = useMutation({
-    mutationFn: () => api<{ results: { ok: boolean }[]; scanStarted: boolean }>('/api/catalog/download-batch', { method: 'POST', body: JSON.stringify({ sourceIds: preview.entries.map(sourceId) }) }, auth)
+    mutationFn: () => api<{ job: DownloadJob }>('/api/catalog/download-jobs', { method: 'POST', body: JSON.stringify({ sourceIds: preview.entries.map(sourceId) }) }, auth),
+    onSuccess: data => setJobId(data.job.id)
   });
-  const okCount = mutation.data?.results.filter(result => result.ok).length ?? 0;
-  const failedCount = mutation.data ? mutation.data.results.length - okCount : 0;
+  const job = useDownloadJob(jobId);
   return <div className="preview-block">
     <div className="preview-head">
       <div><h3>{preview.title}</h3><p>{preview.count} track{preview.count === 1 ? '' : 's'}{preview.uploader ? ` - ${preview.uploader}` : ''}</p></div>
-      <Button disabled={mutation.isPending || mutation.isSuccess} onClick={() => mutation.mutate()}><Download size={16} /> {mutation.isPending ? 'Downloading all...' : 'Download all'}</Button>
+      <Button disabled={mutation.isPending || Boolean(job.data && !jobDone(job.data))} onClick={() => mutation.mutate()}><Download size={16} /> {mutation.isPending ? 'Starting...' : job.data && !jobDone(job.data) ? 'Downloading...' : 'Download all'}</Button>
     </div>
-    {mutation.data && <Status tone={failedCount ? 'warn' : 'success'}>Finished: {okCount} downloaded, {failedCount} failed. Rescan {mutation.data.scanStarted ? 'started' : 'not started'}.</Status>}
     {mutation.error && <Status tone="error">{mutation.error.message}</Status>}
+    {job.data && <JobProgress job={job.data} />}
     <ol className="preview-list">{preview.entries.map(entry => <li key={entry.id}>{entry.title} {entry.duration ? `(${formatDuration(entry.duration)})` : ''}</li>)}</ol>
+  </div>;
+}
+
+function JobProgress({ job, compact = false }: { job: DownloadJob; compact?: boolean }) {
+  const done = job.completed + job.failed;
+  const percent = job.total ? Math.round((done / job.total) * 100) : 0;
+  return <div className={compact ? 'job-progress compact' : 'job-progress'}>
+    <div className="progress-head">
+      <span>{job.status.replace(/_/g, ' ')}</span>
+      <span>{done}/{job.total}</span>
+    </div>
+    <div className="progress-track"><div className="progress-fill" style={{ width: `${percent}%` }} /></div>
+    {jobDone(job) && <p className={job.failed ? 'message error' : 'message success'}>Finished: {job.completed} downloaded, {job.failed} failed. Rescan {job.scanStarted ? 'started' : 'not started'}.</p>}
+    {!compact && <ul className="job-items">
+      {job.items.map(item => <li key={item.sourceId} className={item.status}>
+        <strong>{item.sourceId}</strong>
+        <span>{item.message}</span>
+        {item.path && <small>{item.path}</small>}
+        {item.error && <small>{item.error}</small>}
+      </li>)}
+    </ul>}
   </div>;
 }
 
