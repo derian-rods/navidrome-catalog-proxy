@@ -49,6 +49,18 @@ input, select { width: 100%; border: 0; border-radius: 20px; outline: none; back
 .preview-block { margin-top: 16px; padding: 18px; }
 .preview-list { max-height: 320px; overflow: auto; margin: 16px 0 0; padding-left: 22px; color: #d8d1c8; }
 .preview-list li { margin: 8px 0; }
+.job-progress { margin-top: 16px; }
+.job-progress.compact { margin-top: 12px; }
+.progress-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #c9c1b8; font-weight: 800; text-transform: capitalize; }
+.progress-track { height: 10px; overflow: hidden; border-radius: 999px; background: rgba(255,255,255,.12); margin-top: 8px; }
+.progress-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #ffb199, #8dffb1); transition: width .25s ease; }
+.job-items { display: grid; gap: 8px; max-height: 280px; overflow: auto; margin: 14px 0 0; padding: 0; list-style: none; }
+.job-items li { display: grid; gap: 3px; border: 1px solid rgba(255,255,255,.1); border-radius: 14px; background: rgba(0,0,0,.18); padding: 10px; }
+.job-items li.done { border-color: rgba(141,255,177,.35); }
+.job-items li.failed { border-color: rgba(255,139,127,.45); }
+.job-items li.downloading { border-color: rgba(255,202,184,.45); }
+.job-items span { color: #d8d1c8; }
+.job-items small { color: #aeb7c7; overflow-wrap: anywhere; }
 .row-card, .settings-card { padding: 16px; align-items: center; }
 .row-path { max-width: 760px; overflow-wrap: anywhere; font-size: .86rem; color: #aeb7c7; }
 .filter { margin-bottom: 16px; }

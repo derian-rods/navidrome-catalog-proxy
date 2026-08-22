@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { nanoid } from 'nanoid';
 import { looksLikeYoutubeUrl, previewYoutubeUrl, searchYoutube, searchYoutubeCollections } from '../catalog/youtube.js';
 import { config } from '../config.js';
 import {
@@ -17,6 +18,7 @@ import { triggerScanFromRequest, validateNavidromeCredentials } from '../navidro
 import { youtubeSourceId } from '../subsonic/virtual.js';
 
 const webDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../web/dist');
+const downloadJobs = new Map();
 
 const contentTypes = {
   '.html': 'text/html; charset=utf-8',
@@ -53,6 +55,84 @@ function sourceIdFromRequest(value) {
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+function publicJob(job) {
+  return {
+    id: job.id,
+    status: job.status,
+    total: job.total,
+    completed: job.completed,
+    failed: job.failed,
+    scanStarted: job.scanStarted,
+    createdAt: job.createdAt,
+    updatedAt: job.updatedAt,
+    finishedAt: job.finishedAt,
+    items: job.items
+  };
+}
+
+function updateJob(job, fields = {}) {
+  Object.assign(job, fields, { updatedAt: nowIso() });
+}
+
+function startDownloadJob(sourceIds, request) {
+  const job = {
+    id: nanoid(),
+    status: 'queued',
+    total: sourceIds.length,
+    completed: 0,
+    failed: 0,
+    scanStarted: false,
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+    finishedAt: '',
+    items: sourceIds.map(sourceId => ({
+      sourceId,
+      status: 'queued',
+      message: 'Queued',
+      path: '',
+      error: '',
+      startedAt: '',
+      finishedAt: ''
+    }))
+  };
+  downloadJobs.set(job.id, job);
+
+  void runDownloadJob(job, request);
+  return job;
+}
+
+async function runDownloadJob(job, request) {
+  updateJob(job, { status: 'running' });
+  for (const item of job.items) {
+    item.status = 'downloading';
+    item.message = 'Downloading and processing audio';
+    item.startedAt = nowIso();
+    updateJob(job);
+    try {
+      const organized = await getOrCreateYoutubeTrack(item.sourceId, request);
+      item.status = 'done';
+      item.message = 'Saved to Navidrome library';
+      item.path = organized.path;
+      item.finishedAt = nowIso();
+      job.completed++;
+    } catch (error) {
+      request.log.warn({ error, sourceId: item.sourceId, jobId: job.id }, 'download job item failed');
+      item.status = 'failed';
+      item.message = 'Download failed';
+      item.error = error.message;
+      item.finishedAt = nowIso();
+      job.failed++;
+    }
+    updateJob(job);
+  }
+
+  job.scanStarted = await triggerScan(request);
+  updateJob(job, {
+    status: job.failed > 0 ? 'completed_with_errors' : 'completed',
+    finishedAt: nowIso()
+  });
 }
 
 async function requireAdmin(request, reply) {
@@ -207,6 +287,28 @@ export async function registerWebRoutes(app) {
     }
     const scanStarted = await triggerScan(request);
     return { ok: results.every(result => result.ok), scanStarted, results };
+  });
+
+  app.post('/api/catalog/download-jobs', async (request, reply) => {
+    const authError = await requireAdmin(request, reply);
+    if (authError) return authError;
+    const sourceIds = Array.isArray(request.body?.sourceIds) ? request.body.sourceIds.map(sourceIdFromRequest).filter(Boolean) : [];
+    if (sourceIds.length === 0) {
+      reply.code(400);
+      return { error: 'missing_source_ids' };
+    }
+    return { job: publicJob(startDownloadJob(sourceIds.slice(0, 100), request)) };
+  });
+
+  app.get('/api/catalog/download-jobs/:jobId', async (request, reply) => {
+    const authError = await requireAdmin(request, reply);
+    if (authError) return authError;
+    const job = downloadJobs.get(String(request.params.jobId || ''));
+    if (!job) {
+      reply.code(404);
+      return { error: 'download_job_not_found' };
+    }
+    return { job: publicJob(job) };
   });
 
   app.get('/api/catalog/downloaded', async () => ({
