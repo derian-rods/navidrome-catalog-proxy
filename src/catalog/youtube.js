@@ -22,6 +22,28 @@ function runYtDlp(args) {
   });
 }
 
+function isYoutubeUrl(value) {
+  return /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//i.test(String(value || '').trim());
+}
+
+function toYoutubeResult(item, query = '') {
+  const ranked = query ? rankYoutubeResult(item, query) : { score: 50, badges: [] };
+  return {
+    id: youtubeVirtualId(item.id),
+    source: 'youtube',
+    sourceId: item.id,
+    title: item.title || '',
+    artist: item.channel || item.uploader || item.playlist_uploader || 'YouTube',
+    album: item.playlist_title || item.album || 'YouTube',
+    duration: item.duration || 0,
+    url: item.url?.startsWith('http') ? item.url : item.webpage_url || `https://www.youtube.com/watch?v=${item.id}`,
+    thumbnail: item.thumbnail || '',
+    channel: item.channel || item.uploader || '',
+    score: ranked.score,
+    badges: ranked.badges
+  };
+}
+
 export async function searchYoutube(query) {
   const search = `ytsearch${config.youtube.maxResults}:${query}`;
   const output = await runYtDlp([
@@ -38,23 +60,7 @@ export async function searchYoutube(query) {
     .map(line => line.trim())
     .filter(Boolean)
     .map(line => JSON.parse(line))
-    .map(item => {
-      const ranked = rankYoutubeResult(item, query);
-      return {
-        id: youtubeVirtualId(item.id),
-        source: 'youtube',
-        sourceId: item.id,
-        title: item.title || '',
-        artist: item.channel || item.uploader || 'YouTube',
-        album: 'YouTube',
-        duration: item.duration || 0,
-        url: item.url || item.webpage_url || `https://www.youtube.com/watch?v=${item.id}`,
-        thumbnail: item.thumbnail || '',
-        channel: item.channel || item.uploader || '',
-        score: ranked.score,
-        badges: ranked.badges
-      };
-    })
+    .map(item => toYoutubeResult(item, query))
     .filter(item => allowLongForm || !item.duration || item.duration <= config.youtube.maxSongDurationSeconds)
     .sort((a, b) => b.score - a.score);
 
@@ -62,4 +68,35 @@ export async function searchYoutube(query) {
   rememberYoutubeResults(limited);
   saveVirtualTracks(limited);
   return limited;
+}
+
+export async function previewYoutubeUrl(url) {
+  if (!isYoutubeUrl(url)) throw new Error('only YouTube URLs are supported');
+  const output = await runYtDlp([
+    ...ytdlpAuthArgs(),
+    '--dump-single-json',
+    '--flat-playlist',
+    '--no-warnings',
+    url
+  ]);
+  const info = JSON.parse(output);
+  const rawEntries = Array.isArray(info.entries) && info.entries.length > 0 ? info.entries : [info];
+  const entries = rawEntries
+    .filter(item => item?.id)
+    .map(item => toYoutubeResult({
+      ...item,
+      playlist_title: info.title || item.playlist_title,
+      playlist_uploader: info.uploader || item.playlist_uploader
+    }))
+    .slice(0, 100);
+
+  rememberYoutubeResults(entries);
+  saveVirtualTracks(entries);
+  return {
+    title: info.title || entries[0]?.title || 'YouTube',
+    uploader: info.uploader || info.channel || '',
+    url,
+    count: entries.length,
+    entries
+  };
 }

@@ -15,7 +15,9 @@
           <p class="lede">Find an album, song, remix, or live session. Download it into Navidrome and trigger a rescan automatically.</p>
         </div>
         <div class="top-actions">
-          <input id="adminPassword" class="admin-password" type="password" autocomplete="current-password" placeholder="Admin password">
+          <input id="adminUser" class="admin-login" type="text" autocomplete="username" placeholder="Navidrome user">
+          <input id="adminPassword" class="admin-login" type="password" autocomplete="current-password" placeholder="Navidrome password">
+          <button id="loginCheck" type="button">Login</button>
           <a class="navidrome-link" href="https://music.derian-rods.tech" target="_blank" rel="noreferrer">Open Navidrome</a>
         </div>
       </section>
@@ -32,6 +34,11 @@
           <input id="query" name="q" type="search" autocomplete="off" placeholder="Search songs, albums, artists..." autofocus>
           <button type="submit">Search</button>
         </form>
+        <form class="search url-search" id="urlForm">
+          <input id="youtubeUrl" name="url" type="url" autocomplete="off" placeholder="Paste a YouTube album, playlist, or video URL...">
+          <button type="submit">Load URL</button>
+        </form>
+        <section class="album-preview" id="albumPreview"></section>
         <section class="grid" id="results"></section>
       </section>
 

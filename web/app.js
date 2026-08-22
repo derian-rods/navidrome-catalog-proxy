@@ -4,14 +4,22 @@ const resultsEl = document.querySelector('#results');
 const statusEl = document.querySelector('#status');
 const template = document.querySelector('#cardTemplate');
 const rowTemplate = document.querySelector('#rowTemplate');
+const adminUserInput = document.querySelector('#adminUser');
 const adminPasswordInput = document.querySelector('#adminPassword');
 const downloadedList = document.querySelector('#downloadedList');
 const quarantineList = document.querySelector('#quarantineList');
 const downloadedFilter = document.querySelector('#downloadedFilter');
+const urlForm = document.querySelector('#urlForm');
+const youtubeUrlInput = document.querySelector('#youtubeUrl');
+const albumPreview = document.querySelector('#albumPreview');
 
 let downloadedTracks = [];
 
+adminUserInput.value = sessionStorage.getItem('catalogAdminUser') || '';
 adminPasswordInput.value = sessionStorage.getItem('catalogAdminPassword') || '';
+adminUserInput.addEventListener('input', () => {
+  sessionStorage.setItem('catalogAdminUser', adminUserInput.value);
+});
 adminPasswordInput.addEventListener('input', () => {
   sessionStorage.setItem('catalogAdminPassword', adminPasswordInput.value);
 });
@@ -19,6 +27,7 @@ adminPasswordInput.addEventListener('input', () => {
 function adminHeaders() {
   return {
     'content-type': 'application/json',
+    'x-catalog-user': adminUserInput.value,
     'x-catalog-password': adminPasswordInput.value
   };
 }
@@ -45,6 +54,11 @@ async function api(path, options = {}) {
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(payload.message || payload.error || `HTTP ${response.status}`);
   return payload;
+}
+
+async function checkLogin() {
+  await api('/api/admin/check', { method: 'POST', headers: adminHeaders(), body: '{}' });
+  setStatus('Navidrome login accepted.', 'success');
 }
 
 function setActiveTab(panelId) {
@@ -117,6 +131,53 @@ async function search(query) {
   resultsEl.textContent = '';
   const payload = await api(`/api/catalog/search?q=${encodeURIComponent(query)}`);
   renderResults(payload.results || []);
+}
+
+function renderAlbumPreview(preview) {
+  albumPreview.textContent = '';
+  const entries = preview.entries || [];
+  if (entries.length === 0) {
+    albumPreview.textContent = 'No playable entries found in that URL.';
+    return;
+  }
+
+  const wrap = document.createElement('article');
+  wrap.className = 'preview-card';
+  const heading = document.createElement('div');
+  heading.innerHTML = `<h2>${preview.title || 'YouTube collection'}</h2><p>${entries.length} track${entries.length === 1 ? '' : 's'} found${preview.uploader ? ` - ${preview.uploader}` : ''}</p>`;
+  const downloadAll = document.createElement('button');
+  downloadAll.type = 'button';
+  downloadAll.textContent = 'Download all';
+  downloadAll.addEventListener('click', async () => {
+    if (!confirm(`Download ${entries.length} tracks to Navidrome?`)) return;
+    downloadAll.disabled = true;
+    downloadAll.textContent = 'Downloading all...';
+    setStatus(`Downloading ${entries.length} tracks. Keep this tab open.`, '');
+    try {
+      const payload = await api('/api/catalog/download-batch', {
+        method: 'POST',
+        headers: adminHeaders(),
+        body: JSON.stringify({ sourceIds: entries.map(sourceId) })
+      });
+      const ok = payload.results.filter(result => result.ok).length;
+      const failed = payload.results.length - ok;
+      setStatus(`Batch finished: ${ok} downloaded, ${failed} failed. Rescan ${payload.scanStarted ? 'started' : 'not started'}.`, failed ? 'warn' : 'success');
+      downloadAll.textContent = 'Downloaded all';
+    } catch (error) {
+      downloadAll.disabled = false;
+      downloadAll.textContent = 'Retry download all';
+      setStatus(error.message, 'error');
+    }
+  });
+  const list = document.createElement('ol');
+  list.className = 'preview-list';
+  for (const entry of entries) {
+    const item = document.createElement('li');
+    item.textContent = `${entry.title || entry.sourceId} ${entry.duration ? `(${formatDuration(entry.duration)})` : ''}`;
+    list.append(item);
+  }
+  wrap.append(heading, downloadAll, list);
+  albumPreview.append(wrap);
 }
 
 function trackTitle(track) {
@@ -249,9 +310,29 @@ form.addEventListener('submit', event => {
   search(query).catch(error => setStatus(error.message, 'error'));
 });
 
+urlForm.addEventListener('submit', event => {
+  event.preventDefault();
+  const url = youtubeUrlInput.value.trim();
+  if (!url) {
+    setStatus('Paste a YouTube URL first.', 'warn');
+    return;
+  }
+  albumPreview.textContent = '';
+  setStatus('Loading YouTube URL...');
+  api('/api/catalog/preview-url', {
+    method: 'POST',
+    headers: adminHeaders(),
+    body: JSON.stringify({ url })
+  }).then(payload => {
+    renderAlbumPreview(payload.preview);
+    setStatus(`${payload.preview.count} track${payload.preview.count === 1 ? '' : 's'} loaded from URL.`, 'success');
+  }).catch(error => setStatus(error.message, 'error'));
+});
+
 downloadedFilter.addEventListener('input', renderDownloaded);
 document.querySelector('#refreshDownloaded').addEventListener('click', () => loadDownloaded().catch(error => setStatus(error.message, 'error')));
 document.querySelector('#refreshQuarantine').addEventListener('click', () => loadQuarantine().catch(error => setStatus(error.message, 'error')));
+document.querySelector('#loginCheck').addEventListener('click', () => checkLogin().catch(error => setStatus(error.message, 'error')));
 document.querySelector('#rescanNow').addEventListener('click', async () => {
   try {
     await api('/api/catalog/rescan', { method: 'POST', headers: adminHeaders(), body: '{}' });

@@ -21,7 +21,8 @@ export const config = {
   port: intFromEnv('PORT', 4540),
   logLevel: process.env.LOG_LEVEL || 'info',
   catalog: {
-    adminPassword: process.env.CATALOG_ADMIN_PASSWORD || ''
+    adminPassword: String(process.env.CATALOG_ADMIN_PASSWORD || process.env.NAVIDROME_PASSWORD || '').trim(),
+    adminPasswordSource: process.env.CATALOG_ADMIN_PASSWORD ? 'catalog' : 'navidrome'
   },
   navidrome: {
     url: process.env.NAVIDROME_URL || 'http://127.0.0.1:4533',
@@ -48,8 +49,8 @@ export const config = {
     preferOriginalOpus: boolFromEnv('PREFER_ORIGINAL_OPUS', true)
   },
   youtube: {
-    maxResults: intFromEnv('YOUTUBE_MAX_RESULTS', 10),
-    maxRemoteSongs: intFromEnv('YOUTUBE_MAX_REMOTE_SONGS', 6),
+    maxResults: intFromEnv('YOUTUBE_MAX_RESULTS', 25),
+    maxRemoteSongs: intFromEnv('YOUTUBE_MAX_REMOTE_SONGS', 15),
     maxSongDurationSeconds: intFromEnv('YOUTUBE_MAX_SONG_DURATION_SECONDS', 600)
   },
   cleanup: {
