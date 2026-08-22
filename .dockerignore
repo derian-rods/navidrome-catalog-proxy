@@ -7,4 +7,5 @@ downloads/
 logs/
 tools/
 secrets/
+web/dist/
 npm-debug.log*

@@ -51,6 +51,21 @@ The proxy serves a separate catalog downloader and content management UI at:
 /
 ```
 
+The UI is a React/Vite single-page app. Public route:
+
+```text
+/login
+```
+
+Private routes after Navidrome login:
+
+```text
+/search
+/downloaded
+/quarantine
+/settings
+```
+
 It uses these API routes:
 
 ```text

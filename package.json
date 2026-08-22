@@ -7,18 +7,32 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "check": "node --check src/server.js"
+    "check": "node --check src/server.js",
+    "build:web": "vite build --config web/vite.config.ts",
+    "check:web": "tsc -p web/tsconfig.json --noEmit"
   },
   "engines": {
     "node": ">=22"
   },
   "dependencies": {
     "@fastify/cors": "latest",
+    "@tanstack/react-query": "^5.101.4",
+    "@tanstack/react-router": "^1.170.31",
     "better-sqlite3": "latest",
+    "clsx": "^2.1.1",
     "dotenv": "latest",
     "fastify": "latest",
+    "lucide-react": "^1.33.0",
     "nanoid": "latest",
-    "pino": "latest"
+    "pino": "latest",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^4.7.0",
+    "typescript": "^5.9.3",
+    "vite": "^5.4.21"
+  }
 }

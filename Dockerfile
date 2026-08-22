@@ -1,3 +1,18 @@
+FROM node:22-bookworm-slim AS web-build
+
+WORKDIR /app
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends python3 build-essential \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY package*.json ./
+RUN npm ci
+
+COPY web ./web
+RUN npm run build:web
+
 FROM node:22-bookworm-slim
 
 ENV NODE_ENV=production
@@ -22,7 +37,7 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 
 COPY src ./src
-COPY web ./web
+COPY --from=web-build /app/web/dist ./web/dist
 
 RUN mkdir -p /app/data /app/cache /app/downloads /music \
   && chown -R node:node /app /music
