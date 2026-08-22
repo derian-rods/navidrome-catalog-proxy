@@ -20,6 +20,9 @@ export const config = {
   host: process.env.HOST || '127.0.0.1',
   port: intFromEnv('PORT', 4540),
   logLevel: process.env.LOG_LEVEL || 'info',
+  catalog: {
+    adminPassword: process.env.CATALOG_ADMIN_PASSWORD || ''
+  },
   navidrome: {
     url: process.env.NAVIDROME_URL || 'http://127.0.0.1:4533',
     user: process.env.NAVIDROME_USER || '',

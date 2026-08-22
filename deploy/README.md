@@ -45,10 +45,10 @@ curl http://navidrome-catalog-proxy:4540/api/catalog/stats
 
 ## Standalone Catalog Web
 
-The proxy serves a separate catalog downloader UI at:
+The proxy serves a separate catalog downloader and content management UI at:
 
 ```text
-/catalog
+/
 ```
 
 It uses these API routes:
@@ -56,29 +56,27 @@ It uses these API routes:
 ```text
 /api/catalog/search
 /api/catalog/download
+/api/catalog/downloaded
+/api/catalog/quarantine
+/api/catalog/rescan
 ```
 
-Route those paths to this proxy in Caddy, while keeping normal Navidrome web traffic on `/`:
+Use a dedicated subdomain for the catalog so normal Navidrome apps can keep talking directly to Navidrome:
 
 ```caddyfile
-handle /catalog* {
-  reverse_proxy navidrome-catalog-proxy:4540
-}
-
-handle /api/catalog* {
-  reverse_proxy navidrome-catalog-proxy:4540
-}
-
-handle /rest* {
-  reverse_proxy navidrome-catalog-proxy:4540
-}
-
-handle {
+music.derian-rods.tech {
+  encode zstd gzip
   reverse_proxy navidrome:4533
+}
+
+catalog.derian-rods.tech {
+  encode zstd gzip
+  reverse_proxy navidrome-catalog-proxy:4540
 }
 ```
 
 Set `NAVIDROME_USER` and `NAVIDROME_PASSWORD` in the proxy environment if you want downloads from the standalone web UI to trigger Navidrome rescans automatically.
+Set `CATALOG_ADMIN_PASSWORD` to protect downloads, rescans, quarantine, restore, and permanent delete actions.
 
 ## Volumes
 
