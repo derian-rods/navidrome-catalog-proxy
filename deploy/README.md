@@ -75,8 +75,8 @@ catalog.derian-rods.tech {
 }
 ```
 
-Set `NAVIDROME_USER` and `NAVIDROME_PASSWORD` in the proxy environment if you want downloads from the standalone web UI to trigger Navidrome rescans automatically.
-Set `CATALOG_ADMIN_PASSWORD` to protect downloads, rescans, quarantine, restore, and permanent delete actions.
+Set `NAVIDROME_USER` and `NAVIDROME_PASSWORD` in the proxy environment so downloads from the standalone web UI can trigger Navidrome rescans automatically.
+Admin actions use `CATALOG_ADMIN_PASSWORD` when set, otherwise they fall back to `NAVIDROME_PASSWORD`.
 
 ## Volumes
 

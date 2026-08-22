@@ -66,6 +66,22 @@ export async function callNavidromeJson(request, endpoint) {
   return JSON.parse(text);
 }
 
+export async function validateNavidromeCredentials(user, password) {
+  if (!user || !password) return false;
+  const params = new URLSearchParams({
+    u: user,
+    p: password,
+    v: '1.16.1',
+    c: 'navidrome-catalog-proxy',
+    f: 'json'
+  });
+  const target = new URL(`/rest/ping.view?${params}`, config.navidrome.url);
+  const response = await fetch(target, { method: 'GET', headers: { accept: 'application/json' } });
+  if (!response.ok) return false;
+  const payload = await response.json();
+  return payload?.['subsonic-response']?.status === 'ok';
+}
+
 export async function triggerScanFromRequest(request) {
   const authKeys = ['u', 'p', 't', 's', 'c', 'v', 'f'];
   const params = new URLSearchParams();

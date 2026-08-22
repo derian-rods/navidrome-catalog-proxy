@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { searchYoutube } from '../catalog/youtube.js';
+import { previewYoutubeUrl, searchYoutube } from '../catalog/youtube.js';
 import { config } from '../config.js';
 import {
   getCleanupCandidate,
@@ -13,7 +13,7 @@ import {
   upsertCleanupCandidate
 } from '../db/index.js';
 import { getOrCreateYoutubeTrack } from '../downloads/youtubeTrack.js';
-import { triggerScanFromRequest } from '../navidrome/client.js';
+import { triggerScanFromRequest, validateNavidromeCredentials } from '../navidrome/client.js';
 import { youtubeSourceId } from '../subsonic/virtual.js';
 
 const webDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../web');
@@ -42,17 +42,24 @@ function nowIso() {
   return new Date().toISOString();
 }
 
-function requireAdmin(request, reply) {
-  if (!config.catalog.adminPassword) {
+async function requireAdmin(request, reply) {
+  const user = String(request.headers['x-catalog-user'] || request.body?.user || '').trim();
+  const password = String(request.headers['x-catalog-password'] || request.body?.password || '').trim();
+  if (user && await validateNavidromeCredentials(user, password)) return null;
+
+  if (config.catalog.adminPassword && !user && password === config.catalog.adminPassword) return null;
+
+  if (!config.catalog.adminPassword && !config.navidrome.password) {
     reply.code(503);
     return { error: 'admin_password_not_configured' };
   }
-  const password = String(request.headers['x-catalog-password'] || request.body?.password || '').trim();
-  if (password !== config.catalog.adminPassword) {
+
+  if (!user) {
     reply.code(401);
     return { error: 'invalid_admin_password' };
   }
-  return null;
+  reply.code(401);
+  return { error: 'invalid_navidrome_login' };
 }
 
 function quarantinePathFor(sourceId, originalPath) {
@@ -97,7 +104,7 @@ export async function registerWebRoutes(app) {
   });
 
   app.post('/api/catalog/download', async (request, reply) => {
-    const authError = requireAdmin(request, reply);
+    const authError = await requireAdmin(request, reply);
     if (authError) return authError;
 
     const sourceId = sourceIdFromRequest(request.body?.sourceId || request.body?.id);
@@ -118,9 +125,43 @@ export async function registerWebRoutes(app) {
   });
 
   app.post('/api/admin/check', async (request, reply) => {
-    const authError = requireAdmin(request, reply);
+    const authError = await requireAdmin(request, reply);
     if (authError) return authError;
     return { ok: true };
+  });
+
+  app.post('/api/catalog/preview-url', async (request, reply) => {
+    const authError = await requireAdmin(request, reply);
+    if (authError) return authError;
+    const url = String(request.body?.url || '').trim();
+    if (!url) {
+      reply.code(400);
+      return { error: 'missing_url' };
+    }
+    return { preview: await previewYoutubeUrl(url) };
+  });
+
+  app.post('/api/catalog/download-batch', async (request, reply) => {
+    const authError = await requireAdmin(request, reply);
+    if (authError) return authError;
+    const sourceIds = Array.isArray(request.body?.sourceIds) ? request.body.sourceIds.map(sourceIdFromRequest).filter(Boolean) : [];
+    if (sourceIds.length === 0) {
+      reply.code(400);
+      return { error: 'missing_source_ids' };
+    }
+
+    const results = [];
+    for (const sourceId of sourceIds.slice(0, 100)) {
+      try {
+        const organized = await getOrCreateYoutubeTrack(sourceId, request);
+        results.push({ ok: true, sourceId, path: organized.path, coverPath: organized.coverPath || '', meta: organized.meta || {} });
+      } catch (error) {
+        request.log.warn({ error, sourceId }, 'batch download item failed');
+        results.push({ ok: false, sourceId, error: error.message });
+      }
+    }
+    const scanStarted = await triggerScan(request);
+    return { ok: results.every(result => result.ok), scanStarted, results };
   });
 
   app.get('/api/catalog/downloaded', async () => ({
@@ -139,7 +180,7 @@ export async function registerWebRoutes(app) {
   }));
 
   app.post('/api/catalog/downloaded/:sourceId/quarantine', async (request, reply) => {
-    const authError = requireAdmin(request, reply);
+    const authError = await requireAdmin(request, reply);
     if (authError) return authError;
 
     const sourceId = sourceIdFromRequest(request.params.sourceId);
@@ -163,7 +204,7 @@ export async function registerWebRoutes(app) {
   });
 
   app.post('/api/catalog/quarantine/:sourceId/restore', async (request, reply) => {
-    const authError = requireAdmin(request, reply);
+    const authError = await requireAdmin(request, reply);
     if (authError) return authError;
 
     const sourceId = sourceIdFromRequest(request.params.sourceId);
@@ -179,7 +220,7 @@ export async function registerWebRoutes(app) {
   });
 
   app.delete('/api/catalog/quarantine/:sourceId', async (request, reply) => {
-    const authError = requireAdmin(request, reply);
+    const authError = await requireAdmin(request, reply);
     if (authError) return authError;
 
     const sourceId = sourceIdFromRequest(request.params.sourceId);
@@ -194,7 +235,7 @@ export async function registerWebRoutes(app) {
   });
 
   app.post('/api/catalog/rescan', async (request, reply) => {
-    const authError = requireAdmin(request, reply);
+    const authError = await requireAdmin(request, reply);
     if (authError) return authError;
     const scanStarted = await triggerScan(request);
     return { ok: scanStarted, scanStarted };

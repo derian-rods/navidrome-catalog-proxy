@@ -78,17 +78,19 @@ button {
   gap: 10px;
 }
 
-.admin-password,
+.admin-login,
 .filter {
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(0, 0, 0, 0.28);
 }
 
-.admin-password {
-  width: 190px;
+.admin-login {
+  width: 170px;
   padding: 12px 14px;
   font-size: 0.92rem;
 }
+
+#loginCheck { padding: 12px 14px; }
 
 .tabs {
   display: flex;
@@ -135,6 +137,7 @@ input {
 }
 
 .search button { padding: 0 28px; }
+.url-search { margin-top: 12px; }
 button:disabled { cursor: wait; opacity: 0.68; }
 
 .status {
@@ -239,7 +242,8 @@ button:disabled { cursor: wait; opacity: 0.68; }
 }
 
 .row-card,
-.settings-card {
+.settings-card,
+.preview-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -249,6 +253,24 @@ button:disabled { cursor: wait; opacity: 0.68; }
   background: rgba(255, 255, 255, 0.075);
   padding: 16px;
 }
+
+.preview-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  margin-top: 16px;
+}
+
+.preview-card h2 { margin: 0 0 8px; }
+.preview-card p { margin: 0; color: #aeb7c7; }
+.preview-list {
+  grid-column: 1 / -1;
+  max-height: 320px;
+  overflow: auto;
+  margin: 16px 0 0;
+  padding-left: 22px;
+  color: #d8d1c8;
+}
+.preview-list li { margin: 8px 0; }
 
 .row-card h3 {
   margin: 0 0 6px;
@@ -297,12 +319,13 @@ button.danger {
   .shell { width: min(100% - 20px, 1180px); padding: 24px 0; }
   .hero { display: block; }
   .top-actions { display: grid; margin-top: 18px; }
-  .admin-password { width: 100%; }
+  .admin-login { width: 100%; }
   .navidrome-link { display: inline-flex; margin-top: 18px; }
   .search { grid-template-columns: 1fr; border-radius: 24px; }
   .search button { padding: 16px 20px; }
   .row-card,
-  .settings-card {
+  .settings-card,
+  .preview-card {
     display: block;
   }
   .row-actions {
