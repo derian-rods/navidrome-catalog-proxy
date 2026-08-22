@@ -6,6 +6,7 @@ cache/*
 downloads/*
 logs/*
 tools/*
+web/dist/
 !data/.gitkeep
 !cache/.gitkeep
 !downloads/.gitkeep

@@ -16,7 +16,7 @@ import { getOrCreateYoutubeTrack } from '../downloads/youtubeTrack.js';
 import { triggerScanFromRequest, validateNavidromeCredentials } from '../navidrome/client.js';
 import { youtubeSourceId } from '../subsonic/virtual.js';
 
-const webDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../web');
+const webDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../web/dist');
 
 const contentTypes = {
   '.html': 'text/html; charset=utf-8',
@@ -30,6 +30,19 @@ function sendWebFile(reply, relativePath) {
   reply.header('content-type', contentTypes[path.extname(filePath)] || 'application/octet-stream');
   reply.header('cache-control', relativePath === 'index.html' ? 'no-store' : 'public, max-age=3600');
   return reply.send(fs.createReadStream(filePath));
+}
+
+function sendWebAsset(reply, requestPath) {
+  const relativePath = requestPath.replace(/^\//, '');
+  const filePath = path.join(webDir, relativePath);
+  const normalized = path.normalize(filePath);
+  if (!normalized.startsWith(webDir) || !fs.existsSync(normalized) || fs.statSync(normalized).isDirectory()) {
+    reply.code(404);
+    return reply.send({ error: 'not_found' });
+  }
+  reply.header('content-type', contentTypes[path.extname(normalized)] || 'application/octet-stream');
+  reply.header('cache-control', 'public, max-age=31536000, immutable');
+  return reply.send(fs.createReadStream(normalized));
 }
 
 function sourceIdFromRequest(value) {
@@ -85,10 +98,12 @@ async function triggerScan(request) {
 
 export async function registerWebRoutes(app) {
   app.get('/', async (_request, reply) => sendWebFile(reply, 'index.html'));
-  app.get('/catalog', async (_request, reply) => sendWebFile(reply, 'index.html'));
-  app.get('/catalog/', async (_request, reply) => sendWebFile(reply, 'index.html'));
-  app.get('/catalog/app.js', async (_request, reply) => sendWebFile(reply, 'app.js'));
-  app.get('/catalog/styles.css', async (_request, reply) => sendWebFile(reply, 'styles.css'));
+  app.get('/login', async (_request, reply) => sendWebFile(reply, 'index.html'));
+  app.get('/search', async (_request, reply) => sendWebFile(reply, 'index.html'));
+  app.get('/downloaded', async (_request, reply) => sendWebFile(reply, 'index.html'));
+  app.get('/quarantine', async (_request, reply) => sendWebFile(reply, 'index.html'));
+  app.get('/settings', async (_request, reply) => sendWebFile(reply, 'index.html'));
+  app.get('/assets/*', async (request, reply) => sendWebAsset(reply, request.url));
 
   app.get('/api/catalog/search', async request => {
     const query = String(request.query.q || request.query.query || '').trim();
