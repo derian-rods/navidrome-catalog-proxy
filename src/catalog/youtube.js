@@ -26,6 +26,10 @@ function isYoutubeUrl(value) {
   return /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//i.test(String(value || '').trim());
 }
 
+export function looksLikeYoutubeUrl(value) {
+  return isYoutubeUrl(value);
+}
+
 function toYoutubeResult(item, query = '') {
   const ranked = query ? rankYoutubeResult(item, query) : { score: 50, badges: [] };
   return {
@@ -68,6 +72,33 @@ export async function searchYoutube(query) {
   rememberYoutubeResults(limited);
   saveVirtualTracks(limited);
   return limited;
+}
+
+export async function searchYoutubeCollections(query, limit = config.youtube.maxPlaylistResults) {
+  const search = `ytsearch${limit}:${query} album playlist full album`;
+  const output = await runYtDlp([
+    ...ytdlpAuthArgs(),
+    '--dump-json',
+    '--flat-playlist',
+    '--no-warnings',
+    search
+  ]);
+
+  return output
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(Boolean)
+    .map(line => JSON.parse(line))
+    .filter(item => item?.id)
+    .map(item => {
+      const result = toYoutubeResult(item, query);
+      return {
+        ...result,
+        type: item.ie_key === 'YoutubePlaylist' || String(item.url || '').includes('list=') ? 'playlist' : 'video',
+        entryCount: item.playlist_count || item.n_entries || 0
+      };
+    })
+    .slice(0, limit);
 }
 
 export async function previewYoutubeUrl(url) {

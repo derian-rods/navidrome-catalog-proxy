@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { previewYoutubeUrl, searchYoutube } from '../catalog/youtube.js';
+import { looksLikeYoutubeUrl, previewYoutubeUrl, searchYoutube, searchYoutubeCollections } from '../catalog/youtube.js';
 import { config } from '../config.js';
 import {
   getCleanupCandidate,
@@ -128,6 +128,36 @@ export async function registerWebRoutes(app) {
     const authError = await requireAdmin(request, reply);
     if (authError) return authError;
     return { ok: true };
+  });
+
+  app.post('/api/auth/login', async (request, reply) => {
+    const user = String(request.body?.user || '').trim();
+    const password = String(request.body?.password || '').trim();
+    if (await validateNavidromeCredentials(user, password)) return { ok: true, user };
+    reply.code(401);
+    return { error: 'invalid_navidrome_login' };
+  });
+
+  app.post('/api/catalog/lookup', async request => {
+    const query = String(request.body?.query || '').trim();
+    const mode = String(request.body?.mode || 'auto');
+    const limit = Math.min(Math.max(Number.parseInt(String(request.body?.limit || '30'), 10) || 30, 1), 50);
+    if (!query) return { songs: [], collections: [], preview: null };
+
+    if (looksLikeYoutubeUrl(query)) {
+      return { songs: [], collections: [], preview: await previewYoutubeUrl(query) };
+    }
+
+    const [songs, collections] = await Promise.all([
+      mode === 'collections' ? Promise.resolve([]) : searchYoutube(query),
+      mode === 'songs' ? Promise.resolve([]) : searchYoutubeCollections(query, Math.min(limit, config.youtube.maxPlaylistResults))
+    ]);
+
+    return {
+      songs: songs.slice(0, limit),
+      collections: collections.slice(0, limit),
+      preview: null
+    };
   });
 
   app.post('/api/catalog/preview-url', async (request, reply) => {

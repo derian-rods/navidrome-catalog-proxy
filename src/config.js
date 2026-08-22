@@ -51,6 +51,7 @@ export const config = {
   youtube: {
     maxResults: intFromEnv('YOUTUBE_MAX_RESULTS', 25),
     maxRemoteSongs: intFromEnv('YOUTUBE_MAX_REMOTE_SONGS', 15),
+    maxPlaylistResults: intFromEnv('YOUTUBE_MAX_PLAYLIST_RESULTS', 20),
     maxSongDurationSeconds: intFromEnv('YOUTUBE_MAX_SONG_DURATION_SECONDS', 600)
   },
   cleanup: {

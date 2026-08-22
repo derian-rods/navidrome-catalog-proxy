@@ -16,6 +16,43 @@ body {
     #090b10;
 }
 
+body.locked .shell {
+  filter: blur(12px);
+  pointer-events: none;
+  user-select: none;
+}
+
+.login-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(9, 11, 16, 0.82);
+  backdrop-filter: blur(22px);
+}
+
+.login-gate.hidden { display: none; }
+
+.login-card {
+  width: min(520px, 100%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 32px;
+  background: rgba(255, 255, 255, 0.09);
+  padding: 28px;
+  box-shadow: 0 30px 120px rgba(0, 0, 0, 0.45);
+}
+
+.login-card h1 { font-size: clamp(2.4rem, 8vw, 4.6rem); }
+.login-card input,
+.login-card button {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+}
+.login-card button { padding: 16px 20px; }
+
 .shell {
   width: min(1180px, calc(100% - 32px));
   margin: 0 auto;
@@ -136,6 +173,16 @@ input {
   padding: 18px 20px;
 }
 
+select {
+  border: 0;
+  border-radius: 20px;
+  outline: none;
+  background: rgba(0, 0, 0, 0.28);
+  color: #fff;
+  font: inherit;
+  padding: 0 16px;
+}
+
 .search button { padding: 0 28px; }
 .url-search { margin-top: 12px; }
 button:disabled { cursor: wait; opacity: 0.68; }
@@ -150,18 +197,45 @@ button:disabled { cursor: wait; opacity: 0.68; }
 .status[data-tone="success"] { color: #8dffb1; }
 .message[data-tone="success"] { color: #8dffb1; }
 
-.grid {
+.grid,
+.collections {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
   gap: 18px;
 }
 
-.card {
+.collections {
+  grid-template-columns: 1fr;
+  margin-bottom: 18px;
+}
+
+.results-title {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.card,
+.collection-card {
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.11);
   border-radius: 28px;
   background: rgba(255, 255, 255, 0.075);
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+}
+
+.collection-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px;
+}
+
+.collection-card h2 { margin: 12px 0 8px; }
+.collection-card .actions {
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .thumb {
@@ -271,6 +345,7 @@ button:disabled { cursor: wait; opacity: 0.68; }
   color: #d8d1c8;
 }
 .preview-list li { margin: 8px 0; }
+.preview-list button { padding: 6px 10px; margin-left: 8px; }
 
 .row-card h3 {
   margin: 0 0 6px;
@@ -322,7 +397,10 @@ button.danger {
   .admin-login { width: 100%; }
   .navidrome-link { display: inline-flex; margin-top: 18px; }
   .search { grid-template-columns: 1fr; border-radius: 24px; }
+  select { padding: 16px 20px; }
   .search button { padding: 16px 20px; }
+  .collection-card { display: block; }
+  .collection-card .actions { justify-content: flex-start; margin-top: 14px; }
   .row-card,
   .settings-card,
   .preview-card {
