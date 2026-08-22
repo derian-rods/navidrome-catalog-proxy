@@ -2,8 +2,18 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { searchYoutube } from '../catalog/youtube.js';
-import { getOrganizedTrack, getVirtualTrack } from '../db/index.js';
+import { config } from '../config.js';
+import {
+  getCleanupCandidate,
+  getOrganizedTrack,
+  getVirtualTrack,
+  listCleanupCandidates,
+  listOrganizedTracks,
+  updateCleanupCandidate,
+  upsertCleanupCandidate
+} from '../db/index.js';
 import { getOrCreateYoutubeTrack } from '../downloads/youtubeTrack.js';
+import { triggerScanFromRequest } from '../navidrome/client.js';
 import { youtubeSourceId } from '../subsonic/virtual.js';
 
 const webDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../web');
@@ -28,7 +38,46 @@ function sourceIdFromRequest(value) {
   return youtubeSourceId(input) || input;
 }
 
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function requireAdmin(request, reply) {
+  if (!config.catalog.adminPassword) {
+    reply.code(503);
+    return { error: 'admin_password_not_configured' };
+  }
+  const password = String(request.headers['x-catalog-password'] || request.body?.password || '').trim();
+  if (password !== config.catalog.adminPassword) {
+    reply.code(401);
+    return { error: 'invalid_admin_password' };
+  }
+  return null;
+}
+
+function quarantinePathFor(sourceId, originalPath) {
+  const relative = path.relative(config.paths.musicDir, originalPath);
+  const safeRelative = relative.startsWith('..') || path.isAbsolute(relative)
+    ? path.basename(originalPath)
+    : relative;
+  return path.join(config.cleanup.quarantineDir, 'catalog', sourceId, safeRelative);
+}
+
+function downloadedTrack(sourceId) {
+  const organized = getOrganizedTrack('youtube', sourceId);
+  if (!organized) throw new Error('downloaded track not found');
+  return organized;
+}
+
+async function triggerScan(request) {
+  return triggerScanFromRequest(request).catch(error => {
+    request.log.warn({ error }, 'failed to trigger Navidrome scan');
+    return false;
+  });
+}
+
 export async function registerWebRoutes(app) {
+  app.get('/', async (_request, reply) => sendWebFile(reply, 'index.html'));
   app.get('/catalog', async (_request, reply) => sendWebFile(reply, 'index.html'));
   app.get('/catalog/', async (_request, reply) => sendWebFile(reply, 'index.html'));
   app.get('/catalog/app.js', async (_request, reply) => sendWebFile(reply, 'app.js'));
@@ -48,6 +97,9 @@ export async function registerWebRoutes(app) {
   });
 
   app.post('/api/catalog/download', async (request, reply) => {
+    const authError = requireAdmin(request, reply);
+    if (authError) return authError;
+
     const sourceId = sourceIdFromRequest(request.body?.sourceId || request.body?.id);
     if (!sourceId) {
       reply.code(400);
@@ -63,5 +115,88 @@ export async function registerWebRoutes(app) {
       coverPath: organized.coverPath || '',
       meta: organized.meta || {}
     };
+  });
+
+  app.post('/api/admin/check', async (request, reply) => {
+    const authError = requireAdmin(request, reply);
+    if (authError) return authError;
+    return { ok: true };
+  });
+
+  app.get('/api/catalog/downloaded', async () => ({
+    tracks: listOrganizedTracks().map(track => ({
+      ...track,
+      exists: fs.existsSync(track.path),
+      quarantined: track.cleanupStatus === 'quarantined' && Boolean(track.quarantinePath)
+    }))
+  }));
+
+  app.get('/api/catalog/quarantine', async () => ({
+    candidates: listCleanupCandidates('quarantined').map(candidate => ({
+      ...candidate,
+      exists: Boolean(candidate.quarantinePath) && fs.existsSync(candidate.quarantinePath)
+    }))
+  }));
+
+  app.post('/api/catalog/downloaded/:sourceId/quarantine', async (request, reply) => {
+    const authError = requireAdmin(request, reply);
+    if (authError) return authError;
+
+    const sourceId = sourceIdFromRequest(request.params.sourceId);
+    const organized = downloadedTrack(sourceId);
+    const target = quarantinePathFor(sourceId, organized.path);
+    if (!fs.existsSync(organized.path)) throw new Error('downloaded file does not exist');
+
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.renameSync(organized.path, target);
+    upsertCleanupCandidate({
+      source: 'youtube',
+      sourceId,
+      originalPath: organized.path,
+      quarantinePath: target,
+      reason: 'manual catalog quarantine',
+      status: 'quarantined'
+    });
+    updateCleanupCandidate('youtube', sourceId, { quarantined_at: nowIso() });
+    const scanStarted = await triggerScan(request);
+    return { ok: true, changed: true, scanStarted, candidate: getCleanupCandidate('youtube', sourceId) };
+  });
+
+  app.post('/api/catalog/quarantine/:sourceId/restore', async (request, reply) => {
+    const authError = requireAdmin(request, reply);
+    if (authError) return authError;
+
+    const sourceId = sourceIdFromRequest(request.params.sourceId);
+    const candidate = getCleanupCandidate('youtube', sourceId);
+    if (!candidate || candidate.status !== 'quarantined') throw new Error('quarantined track not found');
+    if (!fs.existsSync(candidate.quarantinePath)) throw new Error('quarantine file does not exist');
+
+    fs.mkdirSync(path.dirname(candidate.originalPath), { recursive: true });
+    fs.renameSync(candidate.quarantinePath, candidate.originalPath);
+    updateCleanupCandidate('youtube', sourceId, { status: 'restored', restored_at: nowIso() });
+    const scanStarted = await triggerScan(request);
+    return { ok: true, changed: true, scanStarted, candidate: getCleanupCandidate('youtube', sourceId) };
+  });
+
+  app.delete('/api/catalog/quarantine/:sourceId', async (request, reply) => {
+    const authError = requireAdmin(request, reply);
+    if (authError) return authError;
+
+    const sourceId = sourceIdFromRequest(request.params.sourceId);
+    const candidate = getCleanupCandidate('youtube', sourceId);
+    if (!candidate || candidate.status !== 'quarantined') throw new Error('quarantined track not found');
+    if (candidate.quarantinePath && fs.existsSync(candidate.quarantinePath)) {
+      fs.unlinkSync(candidate.quarantinePath);
+    }
+    updateCleanupCandidate('youtube', sourceId, { status: 'deleted', deleted_at: nowIso() });
+    const scanStarted = await triggerScan(request);
+    return { ok: true, changed: true, scanStarted, candidate: getCleanupCandidate('youtube', sourceId) };
+  });
+
+  app.post('/api/catalog/rescan', async (request, reply) => {
+    const authError = requireAdmin(request, reply);
+    if (authError) return authError;
+    const scanStarted = await triggerScan(request);
+    return { ok: scanStarted, scanStarted };
   });
 }

@@ -14,16 +14,55 @@
           <h1>Search YouTube, save to your library.</h1>
           <p class="lede">Find an album, song, remix, or live session. Download it into Navidrome and trigger a rescan automatically.</p>
         </div>
-        <a class="navidrome-link" href="/" target="_blank" rel="noreferrer">Open Navidrome</a>
+        <div class="top-actions">
+          <input id="adminPassword" class="admin-password" type="password" autocomplete="current-password" placeholder="Admin password">
+          <a class="navidrome-link" href="https://music.derian-rods.tech" target="_blank" rel="noreferrer">Open Navidrome</a>
+        </div>
       </section>
 
-      <form class="search" id="searchForm">
-        <input id="query" name="q" type="search" autocomplete="off" placeholder="Search songs, albums, artists..." autofocus>
-        <button type="submit">Search</button>
-      </form>
+      <nav class="tabs" aria-label="Catalog sections">
+        <button class="tab active" type="button" data-tab="searchPanel">Search</button>
+        <button class="tab" type="button" data-tab="downloadedPanel">Downloaded</button>
+        <button class="tab" type="button" data-tab="quarantinePanel">Quarantine</button>
+        <button class="tab" type="button" data-tab="settingsPanel">Settings</button>
+      </nav>
+
+      <section id="searchPanel" class="panel active">
+        <form class="search" id="searchForm">
+          <input id="query" name="q" type="search" autocomplete="off" placeholder="Search songs, albums, artists..." autofocus>
+          <button type="submit">Search</button>
+        </form>
+        <section class="grid" id="results"></section>
+      </section>
 
       <section class="status" id="status">Ready.</section>
-      <section class="grid" id="results"></section>
+
+      <section id="downloadedPanel" class="panel">
+        <div class="section-head">
+          <h2>Downloaded</h2>
+          <button id="refreshDownloaded" type="button">Refresh</button>
+        </div>
+        <input id="downloadedFilter" class="filter" type="search" placeholder="Filter downloaded music...">
+        <section class="list" id="downloadedList"></section>
+      </section>
+
+      <section id="quarantinePanel" class="panel">
+        <div class="section-head">
+          <h2>Quarantine</h2>
+          <button id="refreshQuarantine" type="button">Refresh</button>
+        </div>
+        <section class="list" id="quarantineList"></section>
+      </section>
+
+      <section id="settingsPanel" class="panel">
+        <div class="section-head">
+          <h2>Settings</h2>
+        </div>
+        <div class="settings-card">
+          <p>Use this when Navidrome does not show newly downloaded or restored files yet.</p>
+          <button id="rescanNow" type="button">Rescan Navidrome</button>
+        </div>
+      </section>
     </main>
 
     <template id="cardTemplate">
@@ -42,6 +81,17 @@
           </div>
           <p class="message"></p>
         </div>
+      </article>
+    </template>
+
+    <template id="rowTemplate">
+      <article class="row-card">
+        <div>
+          <h3></h3>
+          <p class="row-meta"></p>
+          <p class="row-path"></p>
+        </div>
+        <div class="row-actions"></div>
       </article>
     </template>
 

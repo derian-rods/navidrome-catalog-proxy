@@ -22,6 +22,7 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 
 COPY src ./src
+COPY web ./web
 
 RUN mkdir -p /app/data /app/cache /app/downloads /music \
   && chown -R node:node /app /music

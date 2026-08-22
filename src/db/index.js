@@ -160,6 +160,46 @@ export function getOrganizedTrack(source, sourceId) {
   };
 }
 
+export function listOrganizedTracks() {
+  const rows = getDb().prepare(`
+    SELECT
+      ot.source, ot.source_id, ot.local_path, ot.cover_path, ot.meta_json, ot.navidrome_id,
+      ot.created_at, ot.updated_at,
+      vt.title, vt.artist, vt.album, vt.duration, vt.url, vt.thumbnail, vt.channel,
+      cc.status AS cleanup_status, cc.quarantine_path, cc.reason, cc.first_seen_at,
+      cc.quarantined_at, cc.restored_at, cc.deleted_at
+    FROM organized_tracks ot
+    LEFT JOIN virtual_tracks vt ON vt.source = ot.source AND vt.source_id = ot.source_id
+    LEFT JOIN cleanup_candidates cc ON cc.source = ot.source AND cc.source_id = ot.source_id
+    ORDER BY ot.updated_at DESC
+  `).all();
+  return rows.map(row => ({
+    source: row.source,
+    sourceId: row.source_id,
+    id: row.source === 'youtube' ? youtubeVirtualId(row.source_id) : `${row.source}:${row.source_id}`,
+    path: row.local_path,
+    coverPath: row.cover_path || '',
+    meta: JSON.parse(row.meta_json || '{}'),
+    navidromeId: row.navidrome_id || '',
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    title: row.title || '',
+    artist: row.artist || '',
+    album: row.album || '',
+    duration: row.duration || 0,
+    url: row.url || '',
+    thumbnail: row.thumbnail || '',
+    channel: row.channel || '',
+    cleanupStatus: row.cleanup_status || '',
+    quarantinePath: row.quarantine_path || '',
+    reason: row.reason || '',
+    firstSeenAt: row.first_seen_at || '',
+    quarantinedAt: row.quarantined_at || '',
+    restoredAt: row.restored_at || '',
+    deletedAt: row.deleted_at || ''
+  }));
+}
+
 export function getCatalogStats() {
   const database = getDb();
   const virtualTracks = database.prepare('SELECT COUNT(*) AS count FROM virtual_tracks').get().count;
@@ -195,6 +235,26 @@ export function insertCleanupCandidate(candidate) {
     VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
     ON CONFLICT(source, source_id) DO NOTHING
   `).run(candidate.source, candidate.sourceId, candidate.originalPath, candidate.reason);
+}
+
+export function upsertCleanupCandidate(candidate) {
+  getDb().prepare(`
+    INSERT INTO cleanup_candidates (source, source_id, original_path, quarantine_path, reason, status, first_seen_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    ON CONFLICT(source, source_id) DO UPDATE SET
+      original_path = excluded.original_path,
+      quarantine_path = excluded.quarantine_path,
+      reason = excluded.reason,
+      status = excluded.status,
+      updated_at = CURRENT_TIMESTAMP
+  `).run(
+    candidate.source,
+    candidate.sourceId,
+    candidate.originalPath,
+    candidate.quarantinePath || '',
+    candidate.reason,
+    candidate.status || 'candidate'
+  );
 }
 
 export function getCleanupCandidate(source, sourceId) {
